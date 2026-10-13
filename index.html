@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cookie Swap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+body{margin:0}
+
+/* Layout: two-panel workbench — editor/preview left, install steps right; stacks on phones */
+:root{
+  --bg:#f6efe6; --panel:#fffaf3; --ink:#2b1a10; --muted:#7a6352; --line:#e4d3c1;
+  --accent:#1f6f8b; --accent-ink:#ffffff; --choc:#5a3420; --stage:#3a2416;
+  --display:"Bricolage Grotesque",ui-rounded,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1a120c; --panel:#241912; --ink:#f4e6d6; --muted:#b39a84; --line:#3d2b1f;
+  --accent:#5bb4d1; --accent-ink:#0f1a1f; --choc:#d9a77c; --stage:#120c08; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1a120c; --panel:#241912; --ink:#f4e6d6; --muted:#b39a84; --line:#3d2b1f;
+  --accent:#5bb4d1; --accent-ink:#0f1a1f; --choc:#d9a77c; --stage:#120c08; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;padding-inline:16px;padding-block:28px 48px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;gap:24px}
+header h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,42px);line-height:1.05;margin:0;color:var(--choc);text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:16px;min-width:0}
+h2{font-family:var(--display);font-weight:600;font-size:19px;margin:0}
+.stage{position:relative;background:radial-gradient(circle at 50% 45%,#6b4a32 0%,var(--stage) 70%);border-radius:10px;aspect-ratio:1/1;max-width:100%;display:grid;place-items:center;overflow:hidden;touch-action:none;cursor:grab}
+.stage:active{cursor:grabbing}
+.stage canvas{width:72%;height:auto;max-width:100%;filter:drop-shadow(0 10px 18px rgba(0,0,0,.45))}
+.tag{position:absolute;top:10px;left:10px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:rgba(0,0,0,.45);color:#f4e6d6;padding:3px 8px;border-radius:99px}
+.hint{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:12px;color:#d9c3ad}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--muted);transition:border-color .15s}
+.drop.over{border-color:var(--accent)}
+.drop label{color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline}
+.controls{display:grid;gap:12px}
+.row{display:grid;grid-template-columns:84px minmax(0,1fr) 52px;align-items:center;gap:10px}
+.row span:first-child{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.row output{font-family:var(--mono);font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.toggles{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:14px;border:1px solid var(--line);background:transparent;color:var(--ink);padding:6px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip:focus-visible,.btn:focus-visible,.drop label:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+ol.steps{margin:0;padding-left:20px;display:grid;gap:8px}
+ol.steps li::marker{font-family:var(--display);font-weight:800;color:var(--choc)}
+code.k{font-family:var(--mono);font-size:13px;background:var(--bg);border:1px solid var(--line);padding:1px 5px;border-radius:5px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.codebox{position:relative;min-width:0}
+textarea{width:100%;height:110px;resize:vertical;font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;word-break:break-all}
+.btn{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;padding:10px 16px;border-radius:8px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.toast{font-size:13px;color:var(--muted)}
+.meta{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+a{color:var(--accent)}
+.steam{display:grid;gap:14px}
+.row2{display:grid;gap:6px}
+.row2 label{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.row2 input{font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-width:320px;width:100%}
+.row2 input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+details.manual{border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+details.manual summary{cursor:pointer;font-weight:700;color:var(--accent)}
+details.manual[open]{display:grid;gap:8px}
+details.manual p{margin:0}
+.fname{font-family:var(--mono);font-size:13px;font-weight:600;margin-top:6px!important}
+#webBox{display:grid;gap:16px}
+#webBox[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Cookie Swap</h1>
+    <p>Put any picture on the big cookie in Cookie Clicker. Upload an image, frame it, then install it as a Steam mod or run it in the browser version.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="h-edit">
+      <h2 id="h-edit">1 · Make your cookie</h2>
+      <div class="stage" id="stage">
+        <span class="tag" id="srcTag">Sample image</span>
+        <canvas id="out" width="256" height="256" aria-label="Cookie preview"></canvas>
+        <span class="hint">Drag to move · scroll or slider to zoom</span>
+      </div>
+      <div class="drop" id="drop">
+        Drop an image here, paste one, or <label for="file" tabindex="0">choose a file</label>
+        <input id="file" type="file" accept="image/*" hidden>
+      </div>
+      <div class="controls">
+        <div class="row"><span>Zoom</span><input id="zoom" type="range" min="0.2" max="4" step="0.01" value="1"><output id="zoomV">100%</output></div>
+        <div class="row"><span>Rotate</span><input id="rot" type="range" min="-180" max="180" step="1" value="0"><output id="rotV">0°</output></div>
+        <div class="toggles" role="group" aria-label="Shape">
+          <button class="chip" id="shapeCircle" aria-pressed="true">Round cutout</button>
+          <button class="chip" id="shapeSquare" aria-pressed="false">Keep full image</button>
+          <button class="chip" id="reset" aria-pressed="false">Re-center</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-install">
+      <h2 id="h-install">2 · Put it in the game</h2>
+      <div class="tabs" role="tablist">
+        <button class="chip" id="tabSteam" aria-pressed="true" role="tab">Steam (mod)</button>
+        <button class="chip" id="tabConsole" aria-pressed="false" role="tab">Browser: console</button>
+        <button class="chip" id="tabBm" aria-pressed="false" role="tab">Browser: bookmarklet</button>
+      </div>
+
+      <div id="steamBox" class="steam">
+        <div class="row2">
+          <label for="modName">Mod name</label>
+          <input id="modName" type="text" value="My Cookie" maxlength="40">
+        </div>
+        <div class="actions">
+          <button class="btn" id="dlZip">Download mod (.zip)</button>
+          <span class="toast" id="toastSteam" role="status"></span>
+        </div>
+        <ol class="steps">
+          <li>In Steam, right-click <b>Cookie Clicker</b> → <b>Manage</b> → <b>Browse local files</b>.</li>
+          <li>Open <code class="k">resources</code> → <code class="k">app</code> → <code class="k">mods</code> → <code class="k">local</code>.</li>
+          <li>Extract the zip there. You should end up with <code class="k" id="pathHint">mods/local/MyCookie/info.txt</code> and <code class="k">main.js</code> next to it.</li>
+          <li>Start the game, go to <b>Options</b> → <b>Mods</b>, make sure your mod is turned on, then restart the game.</li>
+        </ol>
+        <details class="manual">
+          <summary>Can't download? Make the two files by hand</summary>
+          <p>Create a folder in <code class="k">mods/local</code> named <code class="k" id="folderHint">MyCookie</code>. Inside it, make these two files in Notepad. When saving, set “Save as type” to <b>All files</b> so Windows doesn't add <code class="k">.txt</code> to <code class="k">main.js</code>.</p>
+          <p class="fname">info.txt</p>
+          <textarea id="infoTxt" readonly spellcheck="false" style="height:150px" aria-label="info.txt contents"></textarea>
+          <div class="actions"><button class="btn ghost" id="copyInfo">Copy info.txt</button></div>
+          <p class="fname">main.js</p>
+          <textarea id="mainJs" readonly spellcheck="false" aria-label="main.js contents"></textarea>
+          <div class="actions"><button class="btn ghost" id="copyMain">Copy main.js</button></div>
+        </details>
+        <p class="note">Changing your picture? Download the zip again and replace the old folder. To get the normal cookie back, turn the mod off in <b>Options → Mods</b> and restart. The mod is marked as safe for Steam achievements, since it only changes a picture.</p>
+      </div>
+
+      <div id="webBox" hidden>
+      <ol class="steps" id="stepsConsole">
+        <li>Open <a href="https://orteil.dashnet.org/cookieclicker/" target="_blank" rel="noopener">Cookie Clicker</a> in your browser.</li>
+        <li>Press <code class="k">F12</code> (Mac: <code class="k">⌘ ⌥ J</code>) and click the <b>Console</b> tab.</li>
+        <li>Copy the code below, paste it into the console, press <code class="k">Enter</code>.</li>
+      </ol>
+      <ol class="steps" id="stepsBm" hidden>
+        <li>Copy the code below.</li>
+        <li>Right-click your bookmarks bar → <b>Add page</b>. Name it “My Cookie” and paste the code into the URL field.</li>
+        <li>On the Cookie Clicker tab, click the bookmark. Click it again after any reload.</li>
+      </ol>
+
+      <div class="codebox">
+        <textarea id="code" readonly spellcheck="false" aria-label="Generated code"></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn" id="copy">Copy code</button>
+        <span class="toast" id="toast" role="status"></span>
+      </div>
+      <p class="meta" id="meta"></p>
+
+      <div class="note">
+        <b>Want the normal cookie back?</b> Reload the page, or run this:
+        <textarea id="restore" readonly spellcheck="false" style="height:58px;margin-top:8px" aria-label="Restore code"></textarea>
+        <div class="actions" style="margin-top:8px"><button class="btn ghost" id="copyRestore">Copy restore code</button></div>
+      </div>
+      <p class="note">The swap only changes what you see. It doesn't touch your save, cookies or achievements, and it goes away when the page reloads.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function(){
+const out=document.getElementById('out'), ctx=out.getContext('2d');
+const S=256;
+let img=null, zoom=1, rot=0, ox=0, oy=0, circle=true, mode='steam';
+
+function sample(){
+  const c=document.createElement('canvas'); c.width=c.height=512; const g=c.getContext('2d');
+  g.fillStyle='#7ec8e3'; g.fillRect(0,0,512,512);
+  g.fillStyle='#e0a35c'; g.beginPath(); g.arc(256,256,230,0,7); g.fill();
+  g.fillStyle='#f28cb8'; g.beginPath();
+  for(let a=0;a<=Math.PI*2+0.01;a+=0.05){const r=200+Math.sin(a*9)*12; g.lineTo(256+Math.cos(a)*r,256+Math.sin(a)*r);} g.fill();
+  const cols=['#fff','#ffd23f','#3bceac','#ee4266','#540d6e'];
+  let seed=7; const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+  for(let i=0;i<120;i++){const a=rnd()*7, r=95+rnd()*95; g.save(); g.translate(256+Math.cos(a)*r,256+Math.sin(a)*r); g.rotate(rnd()*7); g.fillStyle=cols[i%5]; g.fillRect(-9,-3,18,6); g.restore();}
+  g.globalCompositeOperation='destination-out'; g.beginPath(); g.arc(256,256,70,0,7); g.fill();
+  g.globalCompositeOperation='source-over';
+  const i=new Image(); i.onload=()=>{img=i; fit(); render();}; i.src=c.toDataURL();
+}
+function fit(){ox=0;oy=0;rot=0;zoom=1;sync();}
+function sync(){
+  zoomI.value=zoom; zoomV.textContent=Math.round(zoom*100)+'%';
+  rotI.value=rot; rotV.textContent=rot+'°';
+}
+function render(){
+  if(!img) return;
+  ctx.clearRect(0,0,S,S);
+  ctx.save();
+  if(circle){ctx.beginPath();ctx.arc(S/2,S/2,S/2,0,Math.PI*2);ctx.clip();}
+  const base=S/Math.min(img.width,img.height);
+  const sc=base*zoom;
+  ctx.translate(S/2+ox,S/2+oy); ctx.rotate(rot*Math.PI/180); ctx.scale(sc,sc);
+  ctx.imageSmoothingQuality='high';
+  ctx.drawImage(img,-img.width/2,-img.height/2);
+  ctx.restore();
+  buildCode();
+}
+function modInfo(){
+  const raw=(document.getElementById('modName').value||'').trim()||'My Cookie';
+  const folder=raw.replace(/[^A-Za-z0-9]+/g,'')||'MyCookie';
+  return {name:raw.replace(/["\\]/g,''),folder,id:folder.toLowerCase()};
+}
+function steamFiles(data){
+  const m=modInfo();
+  const info=JSON.stringify({
+    Name:m.name, ID:m.id, Author:'Cookie Swap',
+    Description:'Replaces the big cookie with a custom picture.',
+    ModVersion:1, GameVersion:2.052, Date:new Date().toLocaleDateString('en-US'),
+    Dependencies:[], Disabled:0, AllowSteamAchievs:1
+  },null,'\t');
+  const main='Game.registerMod("'+m.id+'",{\n\tinit:function(){\n\t\tvar pic="'+data+'";\n\t\tGame.Loader.Replace("perfectCookie.png",pic);\n\t}\n});\n';
+  return {m,info,main};
+}
+function buildCode(){
+  const data=out.toDataURL('image/png');
+  const js="(function(){if(!window.Game||!Game.Loader){alert('Open this on the Cookie Clicker tab.');return;}Game.Loader.Replace('perfectCookie.png','"+data+"');})();";
+  code.value= mode==='bm' ? 'javascript:'+js : js;
+  meta.textContent='Image: 256×256 PNG · code size '+(code.value.length/1024).toFixed(0)+' KB';
+  const f=steamFiles(data);
+  document.getElementById('infoTxt').value=f.info;
+  document.getElementById('mainJs').value=f.main;
+  document.getElementById('pathHint').textContent='mods/local/'+f.m.folder+'/info.txt';
+  document.getElementById('folderHint').textContent=f.m.folder;
+}
+document.getElementById('modName').addEventListener('input',()=>{if(img)buildCode();});
+document.getElementById('restore').value="Game.Loader.Replace('perfectCookie.png',Game.Loader.domain+'perfectCookie.png');";
+
+const zoomI=document.getElementById('zoom'), rotI=document.getElementById('rot');
+const zoomV=document.getElementById('zoomV'), rotV=document.getElementById('rotV');
+const code=document.getElementById('code'), meta=document.getElementById('meta');
+zoomI.oninput=()=>{zoom=+zoomI.value;sync();render();};
+rotI.oninput=()=>{rot=+rotI.value;sync();render();};
+
+function setPressed(a,b,on){a.setAttribute('aria-pressed',on);b.setAttribute('aria-pressed',!on);}
+const sc=document.getElementById('shapeCircle'), ss=document.getElementById('shapeSquare');
+sc.onclick=()=>{circle=true;setPressed(sc,ss,true);render();};
+ss.onclick=()=>{circle=false;setPressed(sc,ss,false);render();};
+document.getElementById('reset').onclick=()=>{fit();render();};
+
+const ts=document.getElementById('tabSteam'), tc=document.getElementById('tabConsole'), tb=document.getElementById('tabBm');
+const steamBox=document.getElementById('steamBox'), webBox=document.getElementById('webBox');
+const sCon=document.getElementById('stepsConsole'), sBm=document.getElementById('stepsBm');
+function setTab(m){
+  mode=m;
+  ts.setAttribute('aria-pressed',m==='steam'); tc.setAttribute('aria-pressed',m==='console'); tb.setAttribute('aria-pressed',m==='bm');
+  steamBox.hidden=m!=='steam'; webBox.hidden=m==='steam';
+  sCon.hidden=m!=='console'; sBm.hidden=m!=='bm';
+  buildCode();
+}
+ts.onclick=()=>setTab('steam'); tc.onclick=()=>setTab('console'); tb.onclick=()=>setTab('bm');
+
+// Steam zip download
+const toastSteam=document.getElementById('toastSteam'); let ts2;
+function tSteam(msg){toastSteam.textContent=msg;clearTimeout(ts2);ts2=setTimeout(()=>toastSteam.textContent='',5000);}
+// Standalone download: builds the zip in the browser and saves it with a normal download link
+document.getElementById('dlZip').onclick=async()=>{
+  if(!window.JSZip){document.querySelector('details.manual').open=true;tSteam('Couldn’t build the zip. Use the manual steps below.');return;}
+  const data=out.toDataURL('image/png'); const f=steamFiles(data);
+  const zip=new JSZip(); const dir=zip.folder(f.m.folder);
+  dir.file('info.txt',f.info); dir.file('main.js',f.main);
+  dir.file('thumbnail.png',data.split(',')[1],{base64:true});
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=f.m.folder+'.zip';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  tSteam('Downloaded. Now extract it into mods/local.');
+};
+document.getElementById('copyInfo').onclick=()=>copyFrom(document.getElementById('infoTxt'),'info.txt copied.');
+document.getElementById('copyMain').onclick=()=>copyFrom(document.getElementById('mainJs'),'main.js copied.');
+
+// drag to pan
+const stage=document.getElementById('stage'); let drag=null;
+stage.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,ox,oy};stage.setPointerCapture(e.pointerId);});
+stage.addEventListener('pointermove',e=>{if(!drag)return;const k=S/out.getBoundingClientRect().width;ox=drag.ox+(e.clientX-drag.x)*k;oy=drag.oy+(e.clientY-drag.y)*k;render();});
+stage.addEventListener('pointerup',()=>drag=null);
+stage.addEventListener('pointercancel',()=>drag=null);
+stage.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.min(4,Math.max(0.2,zoom*(e.deltaY<0?1.06:0.94)));sync();render();},{passive:false});
+
+// loading images
+const tag=document.getElementById('srcTag');
+function loadFile(f){
+  if(!f||!f.type.startsWith('image/')){toast('That file isn’t an image. Try a PNG, JPG, GIF or WebP.');return;}
+  const r=new FileReader(); r.onload=()=>{const i=new Image(); i.onload=()=>{img=i;tag.textContent=f.name.length>28?f.name.slice(0,26)+'…':f.name;fit();render();}; i.onerror=()=>toast('Couldn’t read that image.'); i.src=r.result;}; r.readAsDataURL(f);
+}
+document.getElementById('file').onchange=e=>loadFile(e.target.files[0]);
+document.querySelector('.drop label').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();document.getElementById('file').click();}});
+const drop=document.getElementById('drop');
+['dragover','dragenter'].forEach(t=>document.addEventListener(t,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(t=>document.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('over');}));
+document.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
+document.addEventListener('paste',e=>{const it=[...(e.clipboardData||{}).items||[]].find(x=>x.type.startsWith('image/'));if(it)loadFile(it.getAsFile());});
+
+// copy
+let tt; const toastEl=document.getElementById('toast');
+function toast(m){if(mode==='steam'){tSteam(m);return;}toastEl.textContent=m;clearTimeout(tt);tt=setTimeout(()=>toastEl.textContent='',3500);}
+function copyFrom(ta,msg){
+  const done=()=>toast(msg);
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(done,()=>{ta.select();toast('Text selected. Press Ctrl+C (⌘C) to copy.');});}
+  else{ta.select();toast('Text selected. Press Ctrl+C (⌘C) to copy.');}
+}
+document.getElementById('copy').onclick=()=>copyFrom(code, mode==='bm'?'Copied. Paste it as a bookmark URL.':'Copied. Paste it into the game’s console.');
+document.getElementById('copyRestore').onclick=()=>copyFrom(document.getElementById('restore'),'Restore code copied.');
+
+sample();
+})();
+</script>
+
+</body>
+</html>
